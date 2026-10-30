@@ -31,12 +31,7 @@ void SysTick_Handler(void) {
 }
 
 void Timer_Init(void) {
-    //memset(Timers, 0, sizeof(Timers));
-    for (int i = 0; i < MAX_TIMERS; i++) {
-        Timers[i].time = 0;
-        Timers[i].interval = 0;
-        Timers[i].trigger = 0;
-    } 
+    memset(Timers, 0, sizeof(Timers));
 }
 
 void Timer_Set(uint8_t timer_index, uint32_t interval) {
