@@ -16,10 +16,12 @@
 #define TIMER_9     9
 #define MAX_TIMERS 10
 
+typedef void (*Callback)(void);
+
 typedef struct {
     uint32_t time;
     uint32_t interval;
-    uint8_t  trigger;
+    Callback timer_cb;
 } Timer;
 
 static Timer Timers[MAX_TIMERS];
@@ -34,23 +36,20 @@ void Timer_Init(void) {
     memset(Timers, 0, sizeof(Timers));
 }
 
-void Timer_Set(uint8_t timer_index, uint32_t interval) {
+void Timer_Set(uint8_t timer_index, uint32_t interval, Callback cb) {
     Timers[timer_index].time = milliseconds;
     Timers[timer_index].interval = interval; 
+    Timers[timer_index].timer_cb = cb;
 }
 
 void Timer_Loop(void) {
     for (int i = 0; i < MAX_TIMERS; i++) {
 	if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
 	    Timers[i].time = milliseconds;
-	    Timers[i].trigger = 1;
+	    if (Timers[i].timer_cb != 0) {
+	        Timers[i].timer_cb();
+	    }
 	}
-    }
-}
-
-void Timer_Clr(void) {
-    for (int i = 0; i < MAX_TIMERS; i++) {
-	Timers[i].trigger = 0;
     }
 }
 
@@ -60,6 +59,14 @@ void Delay_ms(uint32_t delay) {
     while ((milliseconds - start) < delay) {
         /* Wait */
     }
+}
+
+void Led3_Toggle(void) {
+    LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_9);
+}
+
+void Led4_Toggle(void) {
+    LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_8);
 }
 
 int main(void) {
@@ -80,20 +87,10 @@ int main(void) {
     LL_GPIO_SetPinPull(GPIOC, LL_GPIO_PIN_9, LL_GPIO_PULL_NO);
 
     Timer_Init();
-    Timer_Set(TIMER_0, 100);
-    Timer_Set(TIMER_1, 400);
+    Timer_Set(TIMER_0, 300, Led3_Toggle);
+    Timer_Set(TIMER_1, 400, Led4_Toggle);
 
     while (1) {
 	Timer_Loop();
-
-	if (Timers[TIMER_0].trigger) {
-            LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_9);
-	}
-
-	if (Timers[TIMER_1].trigger) {
-	    LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_8);
-	}
-
-	Timer_Clr();
     }
 }
