@@ -82,13 +82,18 @@ int main(void) {
 
     /* Push-pull output */
     LL_GPIO_SetPinOutputType(GPIOC, LL_GPIO_PIN_9, LL_GPIO_OUTPUT_PUSHPULL);
+    LL_GPIO_SetPinOutputType(GPIOC, LL_GPIO_PIN_8, LL_GPIO_OUTPUT_PUSHPULL);
 
     /* No pull-up or pull-down */
     LL_GPIO_SetPinPull(GPIOC, LL_GPIO_PIN_9, LL_GPIO_PULL_NO);
+    LL_GPIO_SetPinPull(GPIOC, LL_GPIO_PIN_8, LL_GPIO_PULL_NO);
+
+    LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_9);
+    LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_8);
 
     Timer_Init();
-    Timer_Set(TIMER_0, 300, Led3_Toggle);
-    Timer_Set(TIMER_1, 400, Led4_Toggle);
+    Timer_Set(TIMER_0,  500, Led3_Toggle);
+    Timer_Set(TIMER_1, 5000, Led4_Toggle);
 
     while (1) {
 	Timer_Loop();
