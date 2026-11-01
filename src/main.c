@@ -82,6 +82,15 @@ void Led3_ChangePeriod(void) {
     Timer_Set(TIMER_0, new_period, Led3_Toggle);
 }
 
+void Led4_SmoothChangePeriod(void) {
+    uint32_t new_period = 0;
+    static uint8_t counter = 0;
+    counter += 1;
+    counter %= 4;
+    new_period = 1000 - counter * 300;
+    Timer_Set(TIMER_1, new_period, Led4_Toggle);
+}
+
 int main(void) {
     /* Initialize SysTick for 1 ms interrupt */
     SysTick_Config(SystemCoreClock / 1000);
@@ -108,6 +117,7 @@ int main(void) {
     Timer_Set(TIMER_0,  100, Led3_Toggle);
     Timer_Set(TIMER_1, 1000, Led4_Toggle);
     Timer_Set(TIMER_2, 2000, Led3_ChangePeriod);
+    Timer_Set(TIMER_3, 5000, Led4_SmoothChangePeriod);
 
     while (1) {
 	Timer_Loop();
