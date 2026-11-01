@@ -19,6 +19,7 @@
 typedef void (*Callback)(void);
 
 typedef struct {
+    uint8_t used;
     uint32_t time;
     uint32_t interval;
     Callback timer_cb;
@@ -40,14 +41,17 @@ void Timer_Set(uint8_t timer_index, uint32_t interval, Callback cb) {
     Timers[timer_index].time = milliseconds;
     Timers[timer_index].interval = interval; 
     Timers[timer_index].timer_cb = cb;
+    Timers[timer_index].used = 1;
 }
 
 void Timer_Loop(void) {
     for (int i = 0; i < MAX_TIMERS; i++) {
-	if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
-	    Timers[i].time = milliseconds;
-	    if (Timers[i].timer_cb != 0) {
-	        Timers[i].timer_cb();
+	if (Timers[i].used) { 
+	    if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
+	        Timers[i].time = milliseconds;
+	        if (Timers[i].timer_cb != 0) {
+	            Timers[i].timer_cb();
+	        }
 	    }
 	}
     }
@@ -67,6 +71,15 @@ void Led3_Toggle(void) {
 
 void Led4_Toggle(void) {
     LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_8);
+}
+
+void Led3_ChangePeriod(void) {
+    uint32_t new_period = 0;
+    static uint8_t period_mul = 0;
+    period_mul += 1;
+    period_mul %= 2;
+    new_period = 100 + period_mul * 100;
+    Timer_Set(TIMER_0, new_period, Led3_Toggle);
 }
 
 int main(void) {
@@ -92,8 +105,9 @@ int main(void) {
     LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_8);
 
     Timer_Init();
-    Timer_Set(TIMER_0,  500, Led3_Toggle);
-    Timer_Set(TIMER_1, 5000, Led4_Toggle);
+    Timer_Set(TIMER_0,  100, Led3_Toggle);
+    Timer_Set(TIMER_1, 1000, Led4_Toggle);
+    Timer_Set(TIMER_2, 2000, Led3_ChangePeriod);
 
     while (1) {
 	Timer_Loop();
