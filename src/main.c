@@ -111,6 +111,23 @@ void Led4_SmoothChangePeriod(void) {
     Timer_Set(TIMER_1, new_period, Led4_Toggle);
 }
 
+void UserButton_Loop(void) {
+    static uint8_t user_button_last_state = 0;
+    if (!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
+        if (!user_button_last_state) {
+            user_button_last_state = 1;
+            if (Timer_Paused(TIMER_0)) {
+                Timer_Resume(TIMER_0);
+            }
+        }
+    } else {
+        if (user_button_last_state) {
+            user_button_last_state = 0;
+            Timer_Pause(TIMER_0);
+        }
+    }
+}
+
 int main(void) {
     /* Initialize SysTick for 1 ms interrupt */
     SysTick_Config(SystemCoreClock / 1000);
@@ -153,18 +170,6 @@ int main(void) {
     while (1) {
 	static uint8_t user_button_last_state = 0;
 	Timer_Loop();
-	if (!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
-	    if (!user_button_last_state) {
-	        user_button_last_state = 1;
-	        if (Timer_Paused(TIMER_0)) {
-                    Timer_Resume(TIMER_0);
-	        }
-	    }
-	} else {
-	    if (user_button_last_state) {
-	        user_button_last_state = 0;
-	        Timer_Pause(TIMER_0);
-	    }
-	} 
+	UserButton_Loop();
     }
 }
