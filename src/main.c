@@ -20,6 +20,7 @@ typedef void (*Callback)(void);
 
 typedef struct {
     uint8_t used;
+    uint8_t running;
     uint32_t time;
     uint32_t interval;
     Callback timer_cb;
@@ -42,19 +43,30 @@ void Timer_Set(uint8_t timer_index, uint32_t interval, Callback cb) {
     Timers[timer_index].interval = interval; 
     Timers[timer_index].timer_cb = cb;
     Timers[timer_index].used = 1;
+    Timers[timer_index].running = 1;
 }
 
 void Timer_Loop(void) {
     for (int i = 0; i < MAX_TIMERS; i++) {
-	if (Timers[i].used) { 
-	    if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
-	        Timers[i].time = milliseconds;
-	        if (Timers[i].timer_cb != 0) {
-	            Timers[i].timer_cb();
+	if (Timers[i].used) {
+	    if (Timers[i].running) {	
+	        if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
+	            Timers[i].time = milliseconds;
+	            if (Timers[i].timer_cb != 0) {
+	                Timers[i].timer_cb();
+	            }
 	        }
 	    }
 	}
     }
+}
+
+void Timer_Pause(uint8_t timer_index) {
+    Timers[timer_index].running = 0;
+}
+
+void Timer_Resume(uint8_t timer_index) {
+    Timers[timer_index].running = 1;
 }
 
 void Delay_ms(uint32_t delay) {
@@ -113,6 +125,12 @@ int main(void) {
     LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_9);
     LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_8);
 
+    /* Enable clock for GPIOA */
+    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
+
+    /* Configure PA0 as input */
+    LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
+
     Timer_Init();
     Timer_Set(TIMER_0,  100, Led3_Toggle);
     Timer_Set(TIMER_1, 1000, Led4_Toggle);
@@ -121,5 +139,10 @@ int main(void) {
 
     while (1) {
 	Timer_Loop();
+	if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
+	    Timer_Pause(TIMER_0);
+	} else {
+	    Timer_Resume(TIMER_0);
+	}
     }
 }
