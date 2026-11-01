@@ -69,6 +69,10 @@ void Timer_Resume(uint8_t timer_index) {
     Timers[timer_index].running = 1;
 }
 
+uint8_t Timer_Paused(uint8_t timer_index) {
+    return ~Timers[timer_index].running;
+}
+
 void Delay_ms(uint32_t delay) {
     uint32_t start = milliseconds;
 
@@ -138,11 +142,20 @@ int main(void) {
     Timer_Set(TIMER_3, 5000, Led4_SmoothChangePeriod);
 
     while (1) {
+	static uint8_t user_button_last_state = 0;
 	Timer_Loop();
 	if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
-	    Timer_Pause(TIMER_0);
+	    if (!user_button_last_state) {
+	        user_button_last_state = 1;
+	        if (Timer_Paused(TIMER_0)) {
+                    Timer_Resume(TIMER_0);
+	        }
+	    }
 	} else {
-	    Timer_Resume(TIMER_0);
-	}
+	    if (user_button_last_state) {
+	        user_button_last_state = 0;
+	        Timer_Pause(TIMER_0);
+	    }
+	} 
     }
 }
