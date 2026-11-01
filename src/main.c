@@ -43,7 +43,7 @@ void Timer_Set(uint8_t timer_index, uint32_t interval, Callback cb) {
     Timers[timer_index].interval = interval; 
     Timers[timer_index].timer_cb = cb;
     Timers[timer_index].used = 1;
-    Timers[timer_index].running = 1;
+    //Timers[timer_index].running = 1;
 }
 
 void Timer_Loop(void) {
@@ -66,6 +66,10 @@ void Timer_Pause(uint8_t timer_index) {
 }
 
 void Timer_Resume(uint8_t timer_index) {
+    Timers[timer_index].running = 1;
+}
+
+void Timer_Start(uint8_t timer_index) {
     Timers[timer_index].running = 1;
 }
 
@@ -141,10 +145,15 @@ int main(void) {
     Timer_Set(TIMER_2, 2000, Led3_ChangePeriod);
     Timer_Set(TIMER_3, 5000, Led4_SmoothChangePeriod);
 
+    Timer_Start(TIMER_0);
+    Timer_Start(TIMER_1);
+    Timer_Start(TIMER_2);
+    Timer_Start(TIMER_3);
+
     while (1) {
 	static uint8_t user_button_last_state = 0;
 	Timer_Loop();
-	if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
+	if (!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
 	    if (!user_button_last_state) {
 	        user_button_last_state = 1;
 	        if (Timer_Paused(TIMER_0)) {
