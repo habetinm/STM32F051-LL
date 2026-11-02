@@ -111,8 +111,9 @@ void Led4_SmoothChangePeriod(void) {
     Timer_Set(TIMER_1, new_period, Led4_Toggle);
 }
 
-void UserButton_Loop(void) {
+void UserButtonHold_Loop(void) {
     static uint8_t user_button_last_state = 0;
+
     if (!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0)) {
         if (!user_button_last_state) {
             user_button_last_state = 1;
@@ -126,6 +127,28 @@ void UserButton_Loop(void) {
             Timer_Pause(TIMER_0);
         }
     }
+}
+
+void UserButtonPressed_Loop(void) {
+    static uint8_t user_button_pressed = 0;
+    uint8_t button_state = 0; 
+
+    button_state = LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0);
+    if (button_state != user_button_pressed) {
+        Delay_ms(10);
+        if (button_state != LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0))
+	    return;
+
+	Delay_ms(10);
+        if (button_state != LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0))
+	    return; 
+
+	user_button_pressed = button_state;
+
+	if (user_button_pressed) {
+	    Led3_Toggle();
+	}
+    } 
 }
 
 int main(void) {
@@ -157,19 +180,18 @@ int main(void) {
     LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
 
     Timer_Init();
-    Timer_Set(TIMER_0,  100, Led3_Toggle);
+    //Timer_Set(TIMER_0,  100, Led3_Toggle);
     Timer_Set(TIMER_1, 1000, Led4_Toggle);
     Timer_Set(TIMER_2, 2000, Led3_ChangePeriod);
     Timer_Set(TIMER_3, 5000, Led4_SmoothChangePeriod);
 
-    Timer_Start(TIMER_0);
+    //Timer_Start(TIMER_0);
     Timer_Start(TIMER_1);
     Timer_Start(TIMER_2);
     Timer_Start(TIMER_3);
 
     while (1) {
-	static uint8_t user_button_last_state = 0;
 	Timer_Loop();
-	UserButton_Loop();
+	UserButtonPressed_Loop();
     }
 }
