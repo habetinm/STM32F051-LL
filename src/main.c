@@ -48,16 +48,16 @@ void Timer_Set(uint8_t timer_index, uint32_t interval, Callback cb) {
 
 void Timer_Loop(void) {
     for (int i = 0; i < MAX_TIMERS; i++) {
-	if (Timers[i].used) {
-	    if (Timers[i].running) {	
-	        if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
-	            Timers[i].time = milliseconds;
-	            if (Timers[i].timer_cb != 0) {
-	                Timers[i].timer_cb();
-	            }
-	        }
-	    }
-	}
+        if (Timers[i].used) {
+            if (Timers[i].running) {
+                if ((milliseconds - Timers[i].time) >= Timers[i].interval) {
+                    Timers[i].time = milliseconds;
+                    if (Timers[i].timer_cb != 0) {
+                        Timers[i].timer_cb();
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -128,13 +128,14 @@ void UserButtonHold_Loop(void) {
         }
     }
 }
-
+/*
 void UserButtonPressed_Loop(void) {
+    static uint8_t user_button_last_state = 0;
     static uint8_t user_button_pressed = 0;
     uint8_t button_state = 0; 
 
     button_state = LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0);
-    if (button_state != user_button_pressed) {
+    if (button_state != user_button_last_state) {
         Delay_ms(10);
         if (button_state != LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0))
 	    return;
@@ -143,13 +144,80 @@ void UserButtonPressed_Loop(void) {
         if (button_state != LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0))
 	    return; 
 
-	user_button_pressed = button_state;
+	user_button_last_state = button_state;
 
-	if (user_button_pressed) {
-	    Led3_Toggle();
+        user_button_pressed += 1;
+	user_button_pressed %= 2;
+
+	if (!user_button_pressed) {
+	    LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_9);
+
+	    //Led3_Toggle();
+	    //Timer_Pause(TIMER_0);
+	} else {
+	    LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_9);
+	    //Timer_Resume(TIMER_0);
 	}
     } 
 }
+*/
+void UserButtonPressed_Loop(void) {
+    static uint32_t button_state = 0;
+    static uint8_t led_state = 0;
+    uint32_t new_state;
+
+    new_state = LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0);
+    if (new_state != button_state) {
+        Delay_ms(20);
+        new_state = LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_0);
+        if (new_state != button_state) {
+            button_state = new_state;
+            if (button_state) {
+                led_state = !led_state;
+                if (led_state) {
+                    Timer_Pause(TIMER_0);
+                    //LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_9);
+                } else {
+                    Timer_Resume(TIMER_0);
+                    //LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_9);
+                }
+            }
+        }
+    }
+}
+
+void UserButtonPressedNoneBlock_Loop()
+{
+    static uint8_t last_state = 1;
+    static uint8_t button_state = 1;
+    static uint32_t last_change_time = 0;
+    static uint8_t led_state = 0;
+
+    uint8_t current_state = (GPIOA->IDR & GPIO_IDR_0) ? 1 : 0;
+
+    // Zaznamenání změny vstupu
+    if (current_state != last_state) {
+        last_change_time = milliseconds;
+        last_state = current_state;
+    }
+
+    // Ověření, zda je vstup stabilní alespoň 20 ms
+    if ((current_state != button_state) && ((uint32_t)(milliseconds - last_change_time) >= 20)) {
+        button_state = current_state;
+
+        // Reakce na stisk tlačítka (aktivní v log. 0)
+        if (button_state == 0) {
+            led_state = !led_state;
+            if (led_state) {
+                //GPIOC->ODR ^= GPIO_ODR_9;
+                Timer_Resume(TIMER_0);
+            } else {
+                Timer_Pause(TIMER_0);
+            }
+        }
+    }
+}
+
 
 int main(void) {
     /* Initialize SysTick for 1 ms interrupt */
@@ -180,18 +248,19 @@ int main(void) {
     LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
 
     Timer_Init();
-    //Timer_Set(TIMER_0,  100, Led3_Toggle);
+    Timer_Set(TIMER_0,  100, Led3_Toggle);
     Timer_Set(TIMER_1, 1000, Led4_Toggle);
     Timer_Set(TIMER_2, 2000, Led3_ChangePeriod);
     Timer_Set(TIMER_3, 5000, Led4_SmoothChangePeriod);
 
-    //Timer_Start(TIMER_0);
+    Timer_Start(TIMER_0);
     Timer_Start(TIMER_1);
     Timer_Start(TIMER_2);
     Timer_Start(TIMER_3);
 
     while (1) {
-	Timer_Loop();
-	UserButtonPressed_Loop();
+        Timer_Loop();
+        //UserButtonPressed_Loop();
+        UserButtonPressedNoneBlock_Loop();
     }
 }
